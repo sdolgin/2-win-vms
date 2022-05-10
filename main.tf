@@ -14,6 +14,8 @@ terraform {
    features {}
  }
 
+data "azurerm_client_config" "current" {}
+
  resource "azurerm_resource_group" "test" {
    name     = "rg-winvm-demo"
    location = "East US 2"
@@ -115,4 +117,13 @@ terraform {
    tags = {
      environment = "staging"
    }
+ }
+
+ resource "azurerm_key_vault" "test" {
+    name                = "kv-winvm-demo"
+    location            = azurerm_resource_group.test.location
+    resource_group_name = azurerm_resource_group.test.name
+    sku_name            = "standard"
+    tenant_id           = "${data.azurerm_client_config.current.tenant_id}"
+    enabled_for_disk_encryption = true
  }
