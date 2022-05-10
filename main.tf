@@ -72,7 +72,7 @@ terraform {
    availability_set_id   = azurerm_availability_set.avset.id
    resource_group_name   = azurerm_resource_group.test.name
    network_interface_ids = [element(azurerm_network_interface.test.*.id, count.index)]
-   vm_size               = "Standard_DS1_v2"
+   vm_size               = "Standard_DS2_v2"
 
    # Uncomment this line to delete the OS disk automatically when deleting the VM
    # delete_os_disk_on_termination = true
@@ -91,13 +91,13 @@ terraform {
      name              = "myosdisk${count.index}"
      caching           = "ReadWrite"
      create_option     = "FromImage"
-     managed_disk_type = "Standard_LRS"
+     managed_disk_type = "Premium_LRS"
    }
 
    # Optional data disks
    storage_data_disk {
      name              = "datadisk_new_${count.index}"
-     managed_disk_type = "Standard_LRS"
+     managed_disk_type = "Premium_LRS"
      create_option     = "Empty"
      lun               = 0
      disk_size_gb      = "1023"
