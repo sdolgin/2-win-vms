@@ -51,7 +51,7 @@ terraform {
    name                 = "datadisk_existing_${count.index}"
    location             = azurerm_resource_group.test.location
    resource_group_name  = azurerm_resource_group.test.name
-   storage_account_type = "Standard_LRS"
+   storage_account_type = "Premium_LRS"
    create_option        = "Empty"
    disk_size_gb         = "1023"
  }
@@ -92,15 +92,6 @@ terraform {
      caching           = "ReadWrite"
      create_option     = "FromImage"
      managed_disk_type = "Premium_LRS"
-   }
-
-   # Optional data disks
-   storage_data_disk {
-     name              = "datadisk_new_${count.index}"
-     managed_disk_type = "Premium_LRS"
-     create_option     = "Empty"
-     lun               = 0
-     disk_size_gb      = "1023"
    }
 
    storage_data_disk {
