@@ -35,6 +35,33 @@ data "azurerm_client_config" "current" {}
    address_prefixes     = ["10.0.2.0/24"]
  }
 
+ resource "azurerm_subnet" "bastion" {
+    name               = "AzureBastionSubnet"  
+    resource_group_name = azurerm_resource_group.test.name
+    virtual_network_name = azurerm_virtual_network.test.name
+    address_prefixes     = ["10.0.3.0/24"]
+ }
+
+resource "azurerm_public_ip" "bastion" {
+  name                = "pip-bastion"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+resource "azurerm_bastion_host" "test" {
+  name                = "bastion-winvm-demo"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+
+  ip_configuration {
+    name                 = "configuration"
+    subnet_id            = azurerm_subnet.bastion.id
+    public_ip_address_id = azurerm_public_ip.bastion.id
+  }
+}
+
  resource "azurerm_network_interface" "test" {
    count               = 2
    name                = "nic-winvm-demo-${count.index}"
