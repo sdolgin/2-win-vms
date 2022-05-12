@@ -5,7 +5,7 @@ terraform {
    required_providers {
      azurerm = {
        source = "hashicorp/azurerm"
-       version = "~>2.0"
+       version = "=2.99"
      }
    }
  }
@@ -20,31 +20,39 @@ data "azurerm_policy_set_definition" "enable_azure_monitor" {
   display_name = "Enable Azure Monitor for VMs"
 }
 
- resource "azurerm_resource_group" "test" {
-   name     = "rg-winvm-demo"
-   location = "East US 2"
- }
+data "azurerm_policy_definition" "deploy_log_analytics" {
+  display_name = "Deploy - Configure Log Analytics extension to be enabled on Windows virtual machines"
+}
 
- resource "azurerm_virtual_network" "test" {
-   name                = "vnet-winvm-demo"
-   address_space       = ["10.0.0.0/16"]
-   location            = azurerm_resource_group.test.location
-   resource_group_name = azurerm_resource_group.test.name
- }
+data "azurerm_policy_definition" "deploy_dependency_agent" {
+  display_name = "Deploy - Configure Dependency agent to be enabled on Windows virtual machines"
+}
 
- resource "azurerm_subnet" "test" {
-   name                 = "default"
-   resource_group_name  = azurerm_resource_group.test.name
-   virtual_network_name = azurerm_virtual_network.test.name
-   address_prefixes     = ["10.0.2.0/24"]
- }
+resource "azurerm_resource_group" "test" {
+  name     = "rg-winvm-demo"
+  location = "East US 2"
+}
 
- resource "azurerm_subnet" "bastion" {
-    name               = "AzureBastionSubnet"  
-    resource_group_name = azurerm_resource_group.test.name
-    virtual_network_name = azurerm_virtual_network.test.name
-    address_prefixes     = ["10.0.3.0/24"]
- }
+resource "azurerm_virtual_network" "test" {
+  name                = "vnet-winvm-demo"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_subnet" "test" {
+  name                 = "default"
+  resource_group_name  = azurerm_resource_group.test.name
+  virtual_network_name = azurerm_virtual_network.test.name
+  address_prefixes     = ["10.0.2.0/24"]
+}
+
+resource "azurerm_subnet" "bastion" {
+  name               = "AzureBastionSubnet"  
+  resource_group_name = azurerm_resource_group.test.name
+  virtual_network_name = azurerm_virtual_network.test.name
+  address_prefixes     = ["10.0.3.0/24"]
+}
 
 resource "azurerm_public_ip" "bastion" {
   name                = "pip-bastion"
@@ -66,7 +74,7 @@ resource "azurerm_bastion_host" "test" {
   }
 }
 
- resource "azurerm_network_interface" "test" {
+resource "azurerm_network_interface" "test" {
    count               = 2
    name                = "nic-winvm-demo-${count.index}"
    location            = azurerm_resource_group.test.location
@@ -79,7 +87,7 @@ resource "azurerm_bastion_host" "test" {
    }
  }
 
- resource "azurerm_managed_disk" "test" {
+resource "azurerm_managed_disk" "test" {
    count                = 2
    name                 = "datadisk_existing_${count.index}"
    location             = azurerm_resource_group.test.location
@@ -89,7 +97,7 @@ resource "azurerm_bastion_host" "test" {
    disk_size_gb         = "1023"
  }
 
- resource "azurerm_availability_set" "avset" {
+resource "azurerm_availability_set" "avset" {
    name                         = "avset"
    location                     = azurerm_resource_group.test.location
    resource_group_name          = azurerm_resource_group.test.name
@@ -98,7 +106,7 @@ resource "azurerm_bastion_host" "test" {
    managed                      = true
  }
 
- resource "azurerm_virtual_machine" "test" {
+resource "azurerm_virtual_machine" "test" {
    count                 = 2
    name                  = "vm-win-demo-${count.index}"
    location              = azurerm_resource_group.test.location
@@ -148,9 +156,9 @@ resource "azurerm_bastion_host" "test" {
    tags = {
      environment = "staging"
    }
- }
+}
 
- resource "azurerm_key_vault" "test" {
+resource "azurerm_key_vault" "test" {
     name                = "kv-winvm-demo"
     location            = azurerm_resource_group.test.location
     resource_group_name = azurerm_resource_group.test.name
@@ -158,7 +166,7 @@ resource "azurerm_bastion_host" "test" {
     tenant_id           = "${data.azurerm_client_config.current.tenant_id}"
     enabled_for_disk_encryption = true
     purge_protection_enabled = true
- }
+}
 
 resource "azurerm_log_analytics_workspace" "test" {
   name                = "workspace-winvm-demo"
@@ -170,8 +178,9 @@ resource "azurerm_resource_group_policy_assignment" "test" {
   name                 = "${data.azurerm_policy_set_definition.enable_azure_monitor.display_name}"
   resource_group_id    = azurerm_resource_group.test.id
   policy_definition_id = "${data.azurerm_policy_set_definition.enable_azure_monitor.id}"
-  identity = {
-    type = "SystemAssigned"
+  location             = azurerm_resource_group.test.location  
+  identity {
+      type = "SystemAssigned"
   }
 
   parameters = <<PARAMS
@@ -182,3 +191,10 @@ resource "azurerm_resource_group_policy_assignment" "test" {
     }
 PARAMS
 }
+
+resource "azurerm_role_assignment" "test" {
+  scope                = azurerm_resource_group_policy_assignment.test.resource_group_id
+  role_definition_name = "Log Analytics Contributor"
+  principal_id         = azurerm_resource_group_policy_assignment.test.identity[0].principal_id
+}
+
