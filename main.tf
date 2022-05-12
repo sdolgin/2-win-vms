@@ -170,6 +170,9 @@ resource "azurerm_resource_group_policy_assignment" "test" {
   name                 = "${data.azurerm_policy_set_definition.enable_azure_monitor.display_name}"
   resource_group_id    = azurerm_resource_group.test.id
   policy_definition_id = "${data.azurerm_policy_set_definition.enable_azure_monitor.id}"
+  identity = {
+    type = "SystemAssigned"
+  }
 
   parameters = <<PARAMS
     {
