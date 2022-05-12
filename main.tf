@@ -154,3 +154,9 @@ resource "azurerm_bastion_host" "test" {
     tenant_id           = "${data.azurerm_client_config.current.tenant_id}"
     enabled_for_disk_encryption = true
  }
+
+resource "azurerm_log_analytics_workspace" "test" {
+  name                = "workspace-winvm-demo"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
