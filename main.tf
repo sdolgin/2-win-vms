@@ -5,13 +5,14 @@ terraform {
    required_providers {
      azurerm = {
        source = "hashicorp/azurerm"
-       version = "=2.99"
+       version = "=3.5.0"
      }
    }
  }
 
  provider "azurerm" {
    features {}
+   subscription_id = var.subscription_id
  }
 
 data "azurerm_client_config" "current" {}
@@ -165,7 +166,7 @@ resource "azurerm_key_vault" "test" {
     sku_name            = "standard"
     tenant_id           = "${data.azurerm_client_config.current.tenant_id}"
     enabled_for_disk_encryption = true
-    purge_protection_enabled = true
+    purge_protection_enabled = false
 }
 
 resource "azurerm_log_analytics_workspace" "test" {
