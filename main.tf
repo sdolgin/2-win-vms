@@ -17,20 +17,8 @@ terraform {
 
 data "azurerm_client_config" "current" {}
 
-data "azurerm_policy_set_definition" "enable_azure_monitor" {
-  display_name = "Enable Azure Monitor for VMs"
-}
-
-data "azurerm_policy_definition" "deploy_log_analytics" {
-  display_name = "Deploy - Configure Log Analytics extension to be enabled on Windows virtual machines"
-}
-
-data "azurerm_policy_definition" "deploy_dependency_agent" {
-  display_name = "Deploy - Configure Dependency agent to be enabled on Windows virtual machines"
-}
-
 resource "azurerm_resource_group" "test" {
-  name     = "rg-winvm-demo"
+  name     = "rg-winvm-demo-jermaine"
   location = "East US 2"
 }
 
@@ -84,7 +72,7 @@ resource "azurerm_network_interface" "test" {
    ip_configuration {
      name                          = "testConfiguration"
      subnet_id                     = azurerm_subnet.test.id
-     private_ip_address_allocation = "dynamic"
+     private_ip_address_allocation = "Dynamic"
    }
  }
 
@@ -158,44 +146,3 @@ resource "azurerm_virtual_machine" "test" {
      environment = "staging"
    }
 }
-
-resource "azurerm_key_vault" "test" {
-    name                = "kv-winvm-demo"
-    location            = azurerm_resource_group.test.location
-    resource_group_name = azurerm_resource_group.test.name
-    sku_name            = "standard"
-    tenant_id           = "${data.azurerm_client_config.current.tenant_id}"
-    enabled_for_disk_encryption = true
-    purge_protection_enabled = false
-}
-
-resource "azurerm_log_analytics_workspace" "test" {
-  name                = "workspace-winvm-demo"
-  location            = azurerm_resource_group.test.location
-  resource_group_name = azurerm_resource_group.test.name
-}
-
-resource "azurerm_resource_group_policy_assignment" "test" {
-  name                 = "${data.azurerm_policy_set_definition.enable_azure_monitor.display_name}"
-  resource_group_id    = azurerm_resource_group.test.id
-  policy_definition_id = "${data.azurerm_policy_set_definition.enable_azure_monitor.id}"
-  location             = azurerm_resource_group.test.location  
-  identity {
-      type = "SystemAssigned"
-  }
-
-  parameters = <<PARAMS
-    {
-      "logAnalytics_1": {
-        "value": "${azurerm_log_analytics_workspace.test.id}"
-      }
-    }
-PARAMS
-}
-
-resource "azurerm_role_assignment" "test" {
-  scope                = azurerm_resource_group_policy_assignment.test.resource_group_id
-  role_definition_name = "Log Analytics Contributor"
-  principal_id         = azurerm_resource_group_policy_assignment.test.identity[0].principal_id
-}
-
